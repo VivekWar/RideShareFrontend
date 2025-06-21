@@ -54,7 +54,7 @@ export default function DashboardPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="space-y-1">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Welcome back, {user?.name}! 👋
+                Welcome back, {user?.name}! 
               </h1>
               <p className="text-gray-600 text-lg">
                 {upcomingTrips > 0 

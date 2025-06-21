@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { MapPin, Calendar, IndianRupeeIcon } from 'lucide-react'
+import { debounce } from 'lodash' // You'll need to install lodash
 
 interface SearchFormData {
   from: string
@@ -27,10 +28,24 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
   
   const [errors, setErrors] = useState<Partial<SearchFormData>>({})
 
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce((searchData: SearchFormData) => {
+      onSearch(searchData)
+    }, 500),
+    [onSearch]
+  )
+
+  const normalizeLocation = (location: string): string => {
+    return location
+      .toLowerCase()
+      .replace(/[,\.]/g, '') // Remove commas and periods
+      .trim()
+  }
+
   const validateForm = (): boolean => {
     const newErrors: Partial<SearchFormData> = {}
     
-    // Validate locations
     if (!formData.from.trim()) {
       newErrors.from = 'Departure location is required'
     }
@@ -39,12 +54,11 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
       newErrors.to = 'Destination is required'
     }
     
-    // Check if from and to are the same
-    if (formData.from.trim().toLowerCase() === formData.to.trim().toLowerCase()) {
+    // Normalize and compare locations
+    if (normalizeLocation(formData.from) === normalizeLocation(formData.to)) {
       newErrors.to = 'Destination must be different from departure location'
     }
     
-    // Validate date (optional but if provided, should be future date)
     if (formData.departureDate) {
       const selectedDate = new Date(formData.departureDate)
       const today = new Date()
@@ -55,9 +69,6 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
       }
     }
     
-    // Validate price
-    
-    
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -65,10 +76,8 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Clear previous errors
     setErrors({})
     
-    // Validate form
     if (!validateForm()) {
       return
     }
@@ -78,10 +87,9 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
         from: formData.from.trim(),
         to: formData.to.trim(),
         departureDate: formData.departureDate,
-        maxPrice: formData.maxPrice || 10000 // Set high default if 0
+        maxPrice: formData.maxPrice || 10000
       }
       
-      console.log('Submitting search data:', searchData) // Debug log
       onSearch(searchData)
       
     } catch (error) {
@@ -93,7 +101,6 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target
     
-    // Clear error for this field when user starts typing
     if (errors[name as keyof SearchFormData]) {
       setErrors(prev => ({
         ...prev,
@@ -101,14 +108,22 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
       }))
     }
     
-    setFormData(prev => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       [name]: type === 'number' ? 
-        (value === '' ? 0 : Math.max(0, parseInt(value) || 0)) : // ✅ Fixed number handling
+        (value === '' ? 0 : Math.max(0, parseInt(value) || 0)) : 
         value
-    }))
+    }
+    
+    setFormData(newFormData)
+
+    // Auto-search on location changes (debounced)
+    if ((name === 'from' || name === 'to') && value.length >= 2) {
+      debouncedSearch(newFormData)
+    }
   }
 
+  // Rest of your component remains the same...
   const handleReset = () => {
     setFormData({
       from: '',
@@ -119,7 +134,6 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
     setErrors({})
   }
 
-  // Get today's date in YYYY-MM-DD format for min date
   const today = new Date().toISOString().split('T')[0]
 
   return (
@@ -134,13 +148,16 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
             name="from"
             value={formData.from}
             onChange={handleChange}
-            placeholder="Departure location (e.g., Mumbai, Delhi)"
+            placeholder="e.g., Mumbai, New Delhi, Bangalore"
             required
             icon={<MapPin className="h-4 w-4" />}
           />
           {errors.from && (
             <p className="mt-1 text-sm text-red-600">{errors.from}</p>
           )}
+          <p className="mt-1 text-xs text-gray-500">
+            Search works with partial matches (e.g., "Delhi" finds "New Delhi")
+          </p>
         </div>
 
         <div>
@@ -150,7 +167,7 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
             name="to"
             value={formData.to}
             onChange={handleChange}
-            placeholder="Destination (e.g., Pune, Bangalore)"
+            placeholder="e.g., Pune, Chennai, Kolkata"
             required
             icon={<MapPin className="h-4 w-4" />}
           />
@@ -166,7 +183,7 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
             name="departureDate"
             value={formData.departureDate}
             onChange={handleChange}
-            min={today} // ✅ Prevent past dates
+            min={today}
             icon={<Calendar className="h-4 w-4" />}
           />
           {errors.departureDate && (
@@ -179,7 +196,7 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
             label="Max Price (₹) - Optional"
             type="number"
             name="maxPrice"
-            value={formData.maxPrice || ''} // ✅ Show empty instead of 0
+            value={formData.maxPrice || ''}
             onChange={handleChange}
             min="0"
             step="10"

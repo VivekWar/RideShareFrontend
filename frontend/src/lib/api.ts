@@ -161,6 +161,7 @@ export const getUserTrips = async (): Promise<Trip[]> => {
     throw new Error(error.response?.data?.error || 'Failed to fetch user trips');
   }
 };
+
 export const getTrip = async (id: number): Promise<Trip> => {
   try {
     const response: AxiosResponse<Trip> = await api.get(`/trips/${id}`);

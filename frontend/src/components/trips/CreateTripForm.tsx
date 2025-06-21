@@ -37,10 +37,10 @@ interface FormErrors {
 }
 
 interface CreateTripFormProps {
-  onSubmitStateChange?: (isLoading: boolean) => void
+  // Removed onSubmitStateChange prop
 }
 
-export default function CreateTripForm({ onSubmitStateChange }: CreateTripFormProps) {
+export default function CreateTripForm({}: CreateTripFormProps) {
   const [formData, setFormData] = useState<CreateTripFormData>({
     from: '',
     to: '',
@@ -83,10 +83,12 @@ export default function CreateTripForm({ onSubmitStateChange }: CreateTripFormPr
         if (!value) return 'Departure time is required'
         const departureDate = new Date(value)
         const currentDate = new Date()
+        const minAllowedDate = new Date(currentDate.getTime() + 30 * 60000)
+        
         if (departureDate <= currentDate) {
           return 'Departure time must be in the future'
         }
-        if (departureDate < new Date(minDateTime)) {
+        if (departureDate < minAllowedDate) {
           return 'Departure time must be at least 30 minutes from now'
         }
         return undefined
@@ -124,7 +126,12 @@ export default function CreateTripForm({ onSubmitStateChange }: CreateTripFormPr
   // Handle field changes with real-time validation
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
-    const processedValue = type === 'number' ? Number(value) : value
+    let processedValue: any = value
+    
+    // Convert to number for numeric fields
+    if (type === 'number') {
+      processedValue = parseInt(value, 10) || 0
+    }
     
     setFormData(prev => ({
       ...prev,
@@ -183,7 +190,6 @@ export default function CreateTripForm({ onSubmitStateChange }: CreateTripFormPr
     
     setIsLoading(true)
     setErrors({})
-    onSubmitStateChange?.(true)
 
     try {
       console.log('=== CREATE TRIP FORM SUBMISSION ===')
@@ -196,7 +202,7 @@ export default function CreateTripForm({ onSubmitStateChange }: CreateTripFormPr
         departureTime: new Date(formData.departureTime).toISOString(),
         maxPassengers: formData.maxPassengers,
         pricePerPerson: formData.pricePerPerson,
-        description: formData.description.trim()
+        description: formData.description.trim() || undefined // Use null for empty description
       }
       
       console.log('API data being sent:', apiData)
@@ -217,18 +223,27 @@ export default function CreateTripForm({ onSubmitStateChange }: CreateTripFormPr
       
       let errorMessage = 'Failed to create trip. Please try again.'
       
-      if (err.response?.status === 500) {
-        errorMessage = 'Server error. Please check your connection and try again.'
-      } else if (err.response?.status === 401) {
-        errorMessage = 'Please log in again to create a trip.'
-      } else if (err.response?.data?.error) {
-        errorMessage = err.response.data.error
+      if (err.response?.status) {
+        switch (err.response.status) {
+          case 400:
+            errorMessage = 'Invalid trip data. Please check your inputs.';
+            break;
+          case 401:
+            errorMessage = 'Please log in again to create a trip.';
+            break;
+          case 500:
+            errorMessage = 'Server error. Please try again later.';
+            break;
+          default:
+            if (err.response.data?.error) {
+              errorMessage = err.response.data.error;
+            }
+        }
       }
       
       setErrors({ general: errorMessage })
     } finally {
       setIsLoading(false)
-      onSubmitStateChange?.(false)
     }
   }
 
@@ -341,10 +356,10 @@ export default function CreateTripForm({ onSubmitStateChange }: CreateTripFormPr
 
           <div>
             <Input
-              label="Passengers"
+              label="Passengers(Number excluding yourself)"
               type="number"
               name="maxPassengers"
-              value={formData.maxPassengers}
+              value={formData.maxPassengers.toString()}
               onChange={handleChange}
               onBlur={handleBlur}
               min="1"
@@ -363,10 +378,10 @@ export default function CreateTripForm({ onSubmitStateChange }: CreateTripFormPr
 
           <div>
             <Input
-              label="Price (₹)"
+              label="Total Approximate Fare Price (₹)"
               type="number"
               name="pricePerPerson"
-              value={formData.pricePerPerson}
+              value={formData.pricePerPerson.toString()}
               onChange={handleChange}
               onBlur={handleBlur}
               min="1"
@@ -408,7 +423,7 @@ export default function CreateTripForm({ onSubmitStateChange }: CreateTripFormPr
       <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
         <Button
           type="submit"
-          disabled={isLoading || Object.keys(errors).length > 0}
+          disabled={isLoading}
           className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-2.5 px-4 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
         >
           {isLoading ? (
