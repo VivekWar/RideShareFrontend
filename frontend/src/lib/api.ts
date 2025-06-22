@@ -9,8 +9,18 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
-
+api.interceptors.request.use(
+  (config) => {
+    // Ensure we're always using the correct base URL
+    console.log('API Request URL:', config.url);
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
