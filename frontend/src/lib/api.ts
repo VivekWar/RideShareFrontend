@@ -4,13 +4,14 @@ import { TOKEN_KEY } from '@/lib/auth';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1',
-  timeout: 10000,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://ridesharebackend.onrender.com/api/v1',
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true,
 });
+
 api.interceptors.request.use(
   (config) => {
     // Ensure we're always using the correct base URL
