@@ -61,18 +61,27 @@ export interface RegisterData {
   password: string;
   phone: string;
 }
-
 export const login = async (email: string, password: string): Promise<LoginResponse> => {
   try {
+    console.log('🚀 API login called with baseURL:', api.defaults.baseURL);
+    console.log('📧 Email:', email);
+    
     const response: AxiosResponse<LoginResponse> = await api.post('/auth/login', {
       email,
       password,
     });
+    
+    console.log('✅ Login API response:', response.data);
     return response.data;
   } catch (error: any) {
+    console.error('❌ Login API error:', error);
+    console.error('❌ Error response:', error.response?.data);
+    console.error('❌ Error status:', error.response?.status);
+    
     throw new Error(error.response?.data?.error || 'Login failed');
   }
 };
+
 
 export const register = async (userData: RegisterData): Promise<LoginResponse> => {
   try {
