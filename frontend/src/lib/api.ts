@@ -4,7 +4,7 @@ import { TOKEN_KEY } from '@/lib/auth';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: 'https://ride-share-backend-kappa.vercel.app/api/v1',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://ridesharebackend-pevc.onrender.com',
   timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
