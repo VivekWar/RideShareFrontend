@@ -17,7 +17,9 @@ import {
   Clock,
   Phone,// ✅ Added Phone icon
   Crown,      // ✅ For trip initiator
-  UserCheck 
+  UserCheck,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 
 interface TripCardProps {
@@ -41,6 +43,7 @@ export default function TripCard({
   const [isLoading, setIsLoading] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
   const [localTrip, setLocalTrip] = useState(trip)
+  const [showPassengerDetails, setShowPassengerDetails] = useState(false)
   
   const [editData, setEditData] = useState({
     from_location: localTrip.from,
@@ -324,6 +327,42 @@ export default function TripCard({
                 <p className="text-xs text-blue-600 mt-1">
                   Passengers can contact you at this number
                 </p>
+              </div>
+            )}
+
+            {/* Passenger Details Section (Visible to Trip Owner) */}
+            {isOwner && localTrip.passengers && localTrip.passengers.length > 0 && (
+              <div className="pt-4">
+                <button
+                  onClick={() => setShowPassengerDetails(!showPassengerDetails)}
+                  className="flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-blue-600 focus:outline-none"
+                >
+                  <span>View Passenger Details</span>
+                  {showPassengerDetails ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                </button>
+                {showPassengerDetails && (
+                  <div className="mt-2 space-y-2 bg-gray-50 p-3 rounded-lg">
+                    {localTrip.passengers.map((passenger) => (
+                      <div key={passenger.id} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold bg-gradient-to-r from-green-500 to-teal-600`}>
+                            {passenger.name?.charAt(0) || 'P'}
+                          </div>
+                          <span className="text-sm text-gray-800">{passenger.name}</span>
+                        </div>
+                        {passenger.phone && (
+                          <button
+                            onClick={() => handlePhoneCall(passenger.phone!)}
+                            className="flex items-center space-x-1 text-xs text-blue-600 hover:underline"
+                          >
+                            <Phone className="h-3 w-3" />
+                            <span>{formatPhoneNumber(passenger.phone!)}</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
