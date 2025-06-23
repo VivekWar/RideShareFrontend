@@ -4,7 +4,7 @@ import { TOKEN_KEY } from '@/lib/auth';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: 'https://ridesharebackend-1.onrender.com/api/v1',
+  baseURL: 'https://ridesharebackend-1.onrender.com',
   timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
