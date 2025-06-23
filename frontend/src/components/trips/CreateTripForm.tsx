@@ -95,12 +95,12 @@ export default function CreateTripForm({}: CreateTripFormProps) {
         
       case 'maxPassengers':
         if (!value || value < 1) return 'At least 1 passenger is required'
-        if (value > 8) return 'Maximum 8 passengers allowed'
+        if (value > 100) return 'Maximum 100 passengers allowed'
         return undefined
         
       case 'pricePerPerson':
         if (!value || value <= 0) return 'Price must be greater than 0'
-        if (value > 10000) return 'Price seems too high. Please check.'
+        if (value > 100000) return 'Price seems too high. Please check.'
         return undefined
         
       default:
@@ -385,7 +385,7 @@ export default function CreateTripForm({}: CreateTripFormProps) {
               onChange={handleChange}
               onBlur={handleBlur}
               min="1"
-              step="10"
+              step="1"
               required
               placeholder="500"
               icon={<IndianRupee className="h-4 w-4" />}
