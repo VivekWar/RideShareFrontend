@@ -15,11 +15,14 @@ import {
   Trash2, 
   UserPlus,
   Clock,
-  Phone,// ✅ Added Phone icon
-  Crown,      // ✅ For trip initiator
+  Phone,
+  Crown,
   UserCheck,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ContactIcon,
+  Mail,
+  MessageCircle
 } from 'lucide-react'
 
 interface TripCardProps {
@@ -40,6 +43,7 @@ export default function TripCard({
   const { user } = useAuth()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isPassengerDetailsModalOpen, setIsPassengerDetailsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
   const [localTrip, setLocalTrip] = useState(trip)
@@ -59,19 +63,16 @@ export default function TripCard({
   const canJoin = !isOwner && !isPassenger && localTrip.currentPassengers < localTrip.maxPassengers
   const isFull = localTrip.currentPassengers >= localTrip.maxPassengers
 
-  // ✅ Phone number formatting function
+  // Phone number formatting function
   const formatPhoneNumber = (phoneNumber: string): string => {
     if (!phoneNumber) return ''
     
-    // Remove all non-digits
     const cleaned = phoneNumber.replace(/\D/g, '')
     
-    // Format as +91 XXXXX XXXXX for Indian numbers
     if (cleaned.length === 10) {
       return `+91 ${cleaned.slice(0, 5)} ${cleaned.slice(5)}`
     }
     
-    // Format as +XX XXXXX XXXXX for international numbers
     if (cleaned.length > 10) {
       const countryCode = cleaned.slice(0, -10)
       const number = cleaned.slice(-10)
@@ -81,10 +82,27 @@ export default function TripCard({
     return phoneNumber
   }
 
-  // ✅ Handle phone call
+  // Handle phone call
   const handlePhoneCall = (phoneNumber: string) => {
     if (phoneNumber) {
       window.location.href = `tel:${phoneNumber}`
+    }
+  }
+
+  // Handle SMS
+  const handleSMS = (phoneNumber: string, passengerName: string) => {
+    if (phoneNumber) {
+      const message = `Hi ${passengerName}, this is regarding our shared trip from ${localTrip.from} to ${localTrip.to} on ${new Date(localTrip.departureTime).toLocaleDateString()}.`
+      window.location.href = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`
+    }
+  }
+
+  // Handle email
+  const handleEmail = (email: string, passengerName: string) => {
+    if (email) {
+      const subject = `Trip Details: ${localTrip.from} to ${localTrip.to}`
+      const body = `Hi ${passengerName},\n\nThis is regarding our shared trip:\n\nFrom: ${localTrip.from}\nTo: ${localTrip.to}\nDate: ${new Date(localTrip.departureTime).toLocaleDateString()}\nTime: ${new Date(localTrip.departureTime).toLocaleTimeString()}\n\nLooking forward to the trip!\n\nBest regards,\n${user?.name}`
+      window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     }
   }
 
@@ -150,7 +168,7 @@ export default function TripCard({
     }
   }
 
-   return (
+  return (
     <>
       <div className={`
         bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 
@@ -158,7 +176,7 @@ export default function TripCard({
         ${isAnimating ? 'animate-pulse bg-green-50' : ''}
         ${isAnimating && 'animate-fade-out' ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}
       `}>
-        {/* ✅ Enhanced Trip Header with Role Indicator */}
+        {/* Enhanced Trip Header with Role Indicator */}
         <div className={`p-4 text-white ${
           isOwner 
             ? 'bg-gradient-to-r from-blue-500 to-purple-600' 
@@ -175,7 +193,7 @@ export default function TripCard({
             </div>
             
             <div className="flex items-center space-x-2">
-              {/* ✅ Role Badge */}
+              {/* Role Badge */}
               {isOwner && (
                 <div className="flex items-center space-x-1 bg-white/20 rounded-full px-2 py-1">
                   <Crown className="h-3 w-3" />
@@ -245,7 +263,7 @@ export default function TripCard({
             </p>
           )}
 
-          {/* ✅ Enhanced Contact Section Based on User Role */}
+          {/* Enhanced Contact Section Based on User Role */}
           <div className="pt-4 border-t border-gray-100 space-y-4">
             {/* Trip Initiator Info */}
             <div className="flex items-center justify-between">
@@ -309,7 +327,6 @@ export default function TripCard({
                       {formatPhoneNumber(localTrip.driver?.phone || user?.phone || '')}
                     </span>
                   </div>
-                  
                 </div>
               </div>
             )}
@@ -330,14 +347,30 @@ export default function TripCard({
               </div>
             )}
 
-            {/* Passenger Details Section (Visible to Trip Owner) */}
+            {/* ✅ NEW: Passenger Details Button for Trip Owner */}
+            {isOwner && localTrip.passengers && localTrip.passengers.length > 0 && (
+              <div className="pt-2">
+                <Button
+                  onClick={() => setIsPassengerDetailsModalOpen(true)}
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-3 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2"
+                >
+                  <ContactIcon className="h-5 w-5" />
+                  <span>View Passenger Details & Contacts</span>
+                  <span className="bg-white/20 rounded-full px-2 py-1 text-xs">
+                    {localTrip.passengers.length}
+                  </span>
+                </Button>
+              </div>
+            )}
+
+            {/* Existing Collapsible Passenger Details Section */}
             {isOwner && localTrip.passengers && localTrip.passengers.length > 0 && (
               <div className="pt-4">
                 <button
                   onClick={() => setShowPassengerDetails(!showPassengerDetails)}
                   className="flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-blue-600 focus:outline-none"
                 >
-                  <span>View Passenger Details</span>
+                  <span>Quick View Passengers</span>
                   {showPassengerDetails ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                 </button>
                 {showPassengerDetails && (
@@ -368,6 +401,119 @@ export default function TripCard({
           </div>
         </div>
       </div>
+
+      {/* ✅ NEW: Passenger Details Modal */}
+      <Modal
+        isOpen={isPassengerDetailsModalOpen}
+        onClose={() => setIsPassengerDetailsModalOpen(false)}
+        title="Passenger Details & Contacts"
+      >
+        <div className="space-y-4">
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h4 className="font-medium text-blue-900 mb-2">Trip Information</h4>
+            <div className="text-sm text-blue-700 space-y-1">
+              <p><strong>Route:</strong> {localTrip.from} → {localTrip.to}</p>
+              <p><strong>Date:</strong> {new Date(localTrip.departureTime).toLocaleDateString()}</p>
+              <p><strong>Time:</strong> {new Date(localTrip.departureTime).toLocaleTimeString()}</p>
+              <p><strong>Passengers:</strong> {localTrip.passengers?.length || 0}/{localTrip.maxPassengers}</p>
+            </div>
+          </div>
+
+          {localTrip.passengers && localTrip.passengers.length > 0 ? (
+            <div className="space-y-4">
+              <h4 className="font-medium text-gray-900">Passengers who joined your trip:</h4>
+              {localTrip.passengers.map((passenger, index) => (
+                <div key={passenger.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-green-500 to-teal-600 flex items-center justify-center text-white font-semibold text-lg">
+                        {passenger.name?.charAt(0) || 'P'}
+                      </div>
+                      <div>
+                        <h5 className="font-medium text-gray-900">{passenger.name}</h5>
+                        <p className="text-sm text-gray-500">Passenger #{index + 1}</p>
+                        {passenger.email && (
+                          <p className="text-sm text-gray-600">{passenger.email}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact Options */}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {passenger.phone && (
+                      <>
+                        <button
+                          onClick={() => handlePhoneCall(passenger.phone!)}
+                          className="flex items-center space-x-2 bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2 rounded-lg text-sm transition-colors"
+                        >
+                          <Phone className="h-4 w-4" />
+                          <span>Call {formatPhoneNumber(passenger.phone!)}</span>
+                        </button>
+                        <button
+                          onClick={() => handleSMS(passenger.phone!, passenger.name || 'Passenger')}
+                          className="flex items-center space-x-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm transition-colors"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          <span>SMS</span>
+                        </button>
+                      </>
+                    )}
+                    {passenger.email && (
+                      <button
+                        onClick={() => handleEmail(passenger.email!, passenger.name || 'Passenger')}
+                        className="flex items-center space-x-2 bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-2 rounded-lg text-sm transition-colors"
+                      >
+                        <Mail className="h-4 w-4" />
+                        <span>Email</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Additional Info */}
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <p className="text-xs text-gray-500">
+                      Joined on {new Date(passenger.createdAt || Date.now()).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+
+              {/* Contact All Button */}
+              <div className="pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    const allPhones = localTrip.passengers?.map(p => p.phone).filter(Boolean).join(',') || ''
+                    if (allPhones) {
+                      const message = `Hi everyone! This is regarding our shared trip from ${localTrip.from} to ${localTrip.to} on ${new Date(localTrip.departureTime).toLocaleDateString()} at ${new Date(localTrip.departureTime).toLocaleTimeString()}. Looking forward to the trip!`
+                      window.location.href = `sms:${allPhones}?body=${encodeURIComponent(message)}`
+                    }
+                  }}
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-4 py-3 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  <span>Send Group Message to All Passengers</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No passengers have joined this trip yet.</p>
+            </div>
+          )}
+
+          <div className="pt-4">
+            <Button
+              onClick={() => setIsPassengerDetailsModalOpen(false)}
+              variant="outline"
+              className="w-full"
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Edit Modal */}
       <Modal
